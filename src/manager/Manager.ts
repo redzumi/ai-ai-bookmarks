@@ -8,6 +8,7 @@ export enum ManagerStatus {
 }
 
 export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
+export type Categories = { [key: string]: number[] };
 
 export class Manager {
   public status: ManagerStatus = ManagerStatus.idle;
@@ -33,9 +34,15 @@ export class Manager {
     this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
   }
 
-  handleBookmarks() {
+  async handleBookmarks() {
     this.status = ManagerStatus.processing;
-    this.aiHandler.handleBookmarks(this.bookmarks);
+    const categories = await this.aiHandler.handleBookmarks(this.bookmarks);
+    this.storage.set("categories", JSON.stringify(categories));
+    this.status = ManagerStatus.idle;
+  }
+
+  getCategories() {
+    return JSON.parse(this.storage.get("categories") || "");
   }
 
   getProxyAPI() {

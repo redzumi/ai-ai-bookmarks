@@ -1,6 +1,8 @@
+import uniq from "lodash.uniq";
 import { AskTemplate } from "../constants";
-import { Bookmark } from "../manager/Manager";
+import { Bookmark, Categories } from "../manager/Manager";
 import { ProxyAPI } from "./ProxyAPI";
+import PQueue from "p-queue";
 
 const MAX_CONTEXT_TOKENS = 6000;
 
@@ -9,10 +11,11 @@ const toDocument = (bookmarks: Bookmark[]) =>
 
 export class AIHandler {
   private proxyApi = new ProxyAPI();
-
-  constructor() {}
+  private queue = new PQueue({ concurrency: 1 });
 
   async handleBookmarks(bookmarks: Bookmark[]) {
+    const categories: Categories = {};
+
     const chunks = this.getContextChunks(bookmarks);
     console.log("Got chunks", chunks);
 
@@ -23,24 +26,41 @@ export class AIHandler {
     console.log("Got contexts", contexts);
 
     const responses = await Promise.all(
-      contexts.map((context) =>
-        this.proxyApi.sendRequest(AskTemplate.replace("#context", context))
+      contexts.map(
+        async (context) =>
+          await this.queue.add(async () => {
+            console.log(Object.keys(categories));
+            const response = await this.proxyApi.sendRequest(
+              AskTemplate.replace("#context", context).replace(
+                "#categories",
+                JSON.stringify(Object.keys(categories))
+              )
+            );
+
+            try {
+              const content: { [key: string]: number[] } = JSON.parse(
+                response?.choices[0]?.message?.content
+              );
+
+              Object.keys(content).forEach((key) => {
+                categories[key] = uniq([
+                  ...(categories[key] || []),
+                  ...content[key],
+                ]);
+              });
+
+              return content;
+            } catch (error) {
+              console.error(error);
+            }
+          })
       )
     );
 
-    console.log("Got responses", responses);
+    console.log(responses);
+    console.log(categories);
 
-    const messages = responses.map((response) => response?.choices[0]?.message);
-
-    try {
-      const content = messages.map((m) => {
-        console.log(m?.content);
-        return JSON.parse(m?.content);
-      });
-      console.log("Got content", content);
-    } catch (error) {
-      console.error(error);
-    }
+    return categories;
   }
 
   getContextChunks(bookmarks: Bookmark[]) {

@@ -3,5 +3,6 @@
   "name": "AI AI Bookmarks",
   "version": "1.0.0",
   "action": { "default_popup": "index.html" },
-  "permissions": ["bookmarks"]
+  "permissions": ["bookmarks"],
+  "host_permissions": ["<all_urls>"]
 }

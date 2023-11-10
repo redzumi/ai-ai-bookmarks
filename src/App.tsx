@@ -7,9 +7,7 @@ function App() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
   useEffect(() => {
-    manager.getBookmarks().then((items) => {
-      setBookmarks(items);
-    });
+    setBookmarks(manager.getBookmarks());
   }, []);
 
   return (

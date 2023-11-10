@@ -1,22 +1,26 @@
+import { Storage } from "../storage/Storage";
 import { ProxyAPI } from "../utils/ProxyAPI";
 
 export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
 
 export class Manager {
-  constructor() {}
+  private storage = new Storage();
+  private bookmarks: Bookmark[] = [];
 
-  getStorage() {
-    // TODO: Replace by inner Storage class
-    return new Storage();
+  constructor() {
+    chrome?.bookmarks?.getTree((tree) => {
+      const items = this.readBookmarks(tree, []);
+      this.bookmarks = items;
+      this.saveBookmarks();
+    });
   }
 
-  getBookmarks(): Promise<Bookmark[]> {
-    return new Promise((resolve) => {
-      chrome?.bookmarks?.getTree((tree) => {
-        const items = this.readBookmarks(tree, []);
-        resolve(items);
-      });
-    });
+  getBookmarks(): Bookmark[] {
+    return this.bookmarks;
+  }
+
+  saveBookmarks() {
+    this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
   }
 
   getProxyAPI() {

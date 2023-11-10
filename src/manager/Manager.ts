@@ -1,10 +1,20 @@
 import { Storage } from "../storage/Storage";
+import { AIHandler } from "../utils/AIHandler";
 import { ProxyAPI } from "../utils/ProxyAPI";
+
+export enum ManagerStatus {
+  idle = "idle",
+  processing = "processing",
+}
 
 export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
 
 export class Manager {
+  public status: ManagerStatus = ManagerStatus.idle;
+
   private storage = new Storage();
+  private aiHandler = new AIHandler();
+
   private bookmarks: Bookmark[] = [];
 
   constructor() {
@@ -21,6 +31,11 @@ export class Manager {
 
   saveBookmarks() {
     this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
+  }
+
+  handleBookmarks() {
+    this.status = ManagerStatus.processing;
+    this.aiHandler.handleBookmarks(this.bookmarks);
   }
 
   getProxyAPI() {

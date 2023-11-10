@@ -3,6 +3,7 @@ import { Bookmark, manager } from "./manager/Manager";
 
 import "./App.css";
 
+// TODO: Manager status
 function App() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
@@ -11,7 +12,10 @@ function App() {
   }, []);
 
   return (
-    <>
+    <div>
+      <button onClick={() => manager.handleBookmarks()}>
+        Handle bookmarks
+      </button>
       <div>
         {bookmarks.map((bookmark) => (
           <div key={bookmark.id}>
@@ -23,7 +27,7 @@ function App() {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 

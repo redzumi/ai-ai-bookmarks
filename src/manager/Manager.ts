@@ -1,6 +1,6 @@
 import { ProxyAPI } from "../utils/ProxyAPI";
 
-export type Bookmark = chrome.bookmarks.BookmarkTreeNode;
+export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
 
 export class Manager {
   constructor() {}
@@ -25,10 +25,10 @@ export class Manager {
 
   readBookmarks(tree: Bookmark[], items: Bookmark[]) {
     tree.forEach((item) => {
+      items.push({ ...item, folder: item.children !== undefined });
+
       if (item.children) {
         this.readBookmarks(item.children, items);
-      } else {
-        items.push(item);
       }
     });
 

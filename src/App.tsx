@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import "./App.css";
 import { Bookmark, manager } from "./manager/Manager";
+
+import "./App.css";
 
 function App() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -15,7 +16,13 @@ function App() {
     <>
       <div>
         {bookmarks.map((bookmark) => (
-          <div key={bookmark.id}>{bookmark.title}</div>
+          <div key={bookmark.id}>
+            {bookmark?.folder === true ? (
+              <b>📁 {bookmark.title}</b>
+            ) : (
+              `${bookmark.title}`
+            )}
+          </div>
         ))}
       </div>
     </>

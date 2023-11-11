@@ -1,3 +1,4 @@
+import EventEmitter from "eventemitter3";
 import { Storage } from "../storage/Storage";
 import { AIHandler } from "../utils/AIHandler";
 import { ProxyAPI } from "../utils/ProxyAPI";
@@ -10,7 +11,7 @@ export enum ManagerStatus {
 export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
 export type Categories = { [key: string]: number[] };
 
-export class Manager {
+export class Manager extends EventEmitter {
   public status: ManagerStatus = ManagerStatus.idle;
 
   private storage = new Storage();
@@ -19,6 +20,8 @@ export class Manager {
   private bookmarks: Bookmark[] = [];
 
   constructor() {
+    super();
+
     chrome?.bookmarks?.getTree((tree) => {
       const items = this.readBookmarks(tree, []);
       this.bookmarks = items;
@@ -35,10 +38,10 @@ export class Manager {
   }
 
   async handleBookmarks() {
-    this.status = ManagerStatus.processing;
+    this.setStatus(ManagerStatus.processing);
     const categories = await this.aiHandler.handleBookmarks(this.bookmarks);
     this.storage.set("categories", JSON.stringify(categories));
-    this.status = ManagerStatus.idle;
+    this.setStatus(ManagerStatus.idle);
   }
 
   getCategories() {
@@ -60,6 +63,15 @@ export class Manager {
     });
 
     return items;
+  }
+
+  setStatus(status: ManagerStatus) {
+    this.status = status;
+    this.emit("statusUpdate", status);
+  }
+
+  eventNames(): (string | symbol)[] {
+    return ["statusUpdate"];
   }
 }
 

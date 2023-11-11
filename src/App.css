@@ -1,8 +1,51 @@
 #root {
-  max-width: 1280px;
+  /* max-width: 1280px; */
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  /* justify-content: center; */
+  align-items: center;
+}
+
+.app-progress {
+  z-index: 1;
+  position: absolute !important;
+  margin: auto;
+  margin-top: 25%;
+  z-index: 3;
+}
+
+.app-content {
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
+}
+
+.app-blocked {
+  position: relative;
+  pointer-events: none;
+  width: 100%;
+
+  margin: 0 auto;
+  padding: 2rem;
+
+  &:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #222;
+    opacity: 0.9;
+    z-index: 2;
+  }
 }
 
 .logo {

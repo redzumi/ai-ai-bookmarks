@@ -1,3 +1,7 @@
+```
+Temporary only in Dev mode.
+For using: git clone && install unpacked extension in dev mode chrome
+```
 <br/>
 <p align="center">
   <a href="https://github.com/redzumi/ai-ai-bookmarks">

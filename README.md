@@ -1,7 +1,7 @@
 <br/>
 <p align="center">
   <a href="https://github.com/redzumi/ai-ai-bookmarks">
-    <img alt="rana-mc" src="https://raw.githubusercontent.com/redzumi/ai-ai-bookmarks/master/src/assets/full-logo.svg" width="146">
+    <img alt="AI AI Bookmarks" src="https://raw.githubusercontent.com/redzumi/ai-ai-bookmarks/master/src/assets/full-logo.svg" width="146">
   </a>
 </p>
 <br />

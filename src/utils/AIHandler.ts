@@ -10,6 +10,9 @@ const toDocument = (bookmarks: Bookmark[]) =>
   bookmarks.reduce((acc, curr) => acc + curr.title, "");
 
 export class AIHandler {
+
+  private debug = false;
+
   private proxyApi = new ProxyAPI();
   private queue = new PQueue({ concurrency: 1 });
 
@@ -17,19 +20,19 @@ export class AIHandler {
     const categories: Categories = {};
 
     const chunks = this.getContextChunks(bookmarks);
-    console.log("Got chunks", chunks);
+    this.log("Got chunks", chunks);
 
     const contexts = chunks.map((chunk) =>
       chunk.map((b) => `${b.id}: ${b.title}`).join("\n")
     );
 
-    console.log("Got contexts", contexts);
+    this.log("Got contexts", contexts);
 
     const responses = await Promise.all(
       contexts.map(
         async (context) =>
           await this.queue.add(async () => {
-            console.log(Object.keys(categories));
+            this.log(Object.keys(categories));
             const response = await this.proxyApi.sendRequest(
               AskTemplate.replace("#context", context).replace(
                 "#categories",
@@ -57,8 +60,8 @@ export class AIHandler {
       )
     );
 
-    console.log(responses);
-    console.log(categories);
+    this.log(responses);
+    this.log(categories);
 
     return categories;
   }
@@ -82,5 +85,9 @@ export class AIHandler {
     }, []);
 
     return chunks;
+  }
+
+  log(...args: unknown[]) {
+    if (this.debug) console.log(...args);
   }
 }

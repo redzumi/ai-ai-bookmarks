@@ -28,6 +28,10 @@ function App() {
     manager.on("statusUpdate", (status) => {
       setStatus(status);
     });
+
+    manager.on("categoriesUpdate", (categories) => {
+      setCategories(categories);
+    });
   }, []);
 
   const handleCategoryClick = (category: string) => {
@@ -67,7 +71,7 @@ function App() {
           </button>
         )}
         <div className="divider">
-          Bookmarks handled: {" "}
+          Bookmarks handled:{" "}
           {categories &&
             Object.values(categories).reduce((a, b) => a + b.length, 0)}
           /{bookmarks.filter((b) => b.folder === false).length}

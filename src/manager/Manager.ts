@@ -40,7 +40,8 @@ export class Manager extends EventEmitter {
   async handleBookmarks() {
     this.setStatus(ManagerStatus.processing);
     const categories = await this.aiHandler.handleBookmarks(this.bookmarks);
-    this.storage.set("categories", JSON.stringify(categories));
+
+    this.setCategories(categories);
     this.setStatus(ManagerStatus.idle);
   }
 
@@ -63,6 +64,11 @@ export class Manager extends EventEmitter {
     });
 
     return items;
+  }
+
+  setCategories(categories: Categories) {
+    this.storage.set("categories", JSON.stringify(categories));
+    this.emit("categoriesUpdate", categories);
   }
 
   setStatus(status: ManagerStatus) {

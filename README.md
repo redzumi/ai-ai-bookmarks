@@ -20,7 +20,7 @@
 
 # Screenshot:
 
-<img alt="rana-mc" src="https://raw.githubusercontent.com/redzumi/ai-ai-bookmarks/master/public/screenshot.png" width="520">
+<img alt="rana-mc" src="https://raw.githubusercontent.com/redzumi/ai-ai-bookmarks/master/public/screenshot.png" width="100%">
 
 # TODOs:
 

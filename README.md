@@ -1,27 +1,34 @@
-# React + TypeScript + Vite
+<br/>
+<p align="center">
+  <a href="https://github.com/redzumi/ai-ai-bookmarks">
+    <img alt="rana-mc" src="https://raw.githubusercontent.com/redzumi/ai-ai-bookmarks/master/src/assets/full-logo.svg" width="146">
+  </a>
+</p>
+<br />
+<p align="center">
+ Just Chrome extension for manage bookmarks with ChatGPT
+</p>
+<br/>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Status:
 
-Currently, two official plugins are available:
+- [x] Stage 0: Hypothesis testing
+- [ ] Stage 1: Basic functionality
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<br/>
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+# Screenshot:
 
-- Configure the top-level `parserOptions` property like this:
+<img alt="rana-mc" src="https://raw.githubusercontent.com/redzumi/ai-ai-bookmarks/master/public/screenshot.png" width="520">
 
-```js
-   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-   },
-```
+# TODOs:
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+- [ ] Refactory App.tsx
+- [ ] Saving AI handled categories to storage (not localStorage)
+- [ ] Add UI for setting GPT API key
+
+# License
+
+- MIT
+  

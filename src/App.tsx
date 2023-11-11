@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bookmark, Categories, manager } from "./manager/Manager";
+import fullLogo from "./assets/full-logo.svg";
 
 import "./App.css";
 
@@ -23,6 +24,7 @@ function App() {
 
   return (
     <div>
+      <img src={chrome.runtime.getURL(fullLogo)} className="logo" alt="AI AI Bookmarks logo" />
       <button
         className="btn btn-neutral"
         onClick={() => manager.handleBookmarks()}

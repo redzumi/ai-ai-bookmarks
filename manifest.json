@@ -4,5 +4,10 @@
   "version": "1.0.0",
   "action": { "default_popup": "index.html" },
   "permissions": ["bookmarks"],
-  "host_permissions": ["<all_urls>"]
+  "host_permissions": ["<all_urls>"],
+  "icons": {
+    "16": "logo-16.png",
+    "48": "logo-48.png",
+    "128": "logo-128.png"
+  }
 }

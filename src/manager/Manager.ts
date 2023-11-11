@@ -42,7 +42,8 @@ export class Manager {
   }
 
   getCategories() {
-    return JSON.parse(this.storage.get("categories") || "");
+    const raw = this.storage.get("categories");
+    return JSON.parse(raw === null ? "{}" : raw);
   }
 
   getProxyAPI() {

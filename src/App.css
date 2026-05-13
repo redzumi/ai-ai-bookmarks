@@ -1,85 +1,76 @@
 #root {
-  /* max-width: 1280px; */
   width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  text-align: center;
+  min-height: 100vh;
 }
 
 .app {
   display: flex;
   flex-direction: column;
-  /* justify-content: center; */
   align-items: center;
-}
-
-.app-progress {
-  z-index: 1;
-  position: absolute !important;
-  margin: auto;
-  margin-top: 25%;
-  z-index: 3;
+  width: 100%;
 }
 
 .app-content {
+  width: min(1120px, 100%);
   margin: 0 auto;
   padding: 2rem;
+  gap: 1.5rem;
 }
 
 .app-blocked {
   position: relative;
   pointer-events: none;
   width: 100%;
-
   margin: 0 auto;
   padding: 2rem;
+  gap: 1.5rem;
+}
 
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #222;
-    opacity: 0.9;
-    z-index: 2;
-  }
+.app-blocked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 20, 0.72);
+  backdrop-filter: blur(3px);
+  z-index: 2;
+}
+
+.app-progress {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
 }
 
 .logo {
-  height: 24em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+  max-width: min(320px, 72vw);
+  height: auto;
+  padding: 0;
+  filter: drop-shadow(0 0 2.5rem rgba(98, 126, 255, 0.35));
+  transition: transform 180ms ease, filter 180ms ease;
 }
+
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 3rem rgba(98, 126, 255, 0.5));
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.settings-form {
+  width: min(100%, 720px);
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: rgba(10, 16, 33, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.3);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.settings-form .form-control {
+  gap: 0.5rem;
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+.settings-form .label-text {
+  color: rgba(241, 245, 249, 0.84);
 }

@@ -1,7 +1,6 @@
 import EventEmitter from "eventemitter3";
 import { Storage } from "../storage/Storage";
 import { AIHandler } from "../utils/AIHandler";
-import { ProxyAPI } from "../utils/ProxyAPI";
 
 export enum ManagerStatus {
   idle = "idle",
@@ -18,40 +17,82 @@ export class Manager extends EventEmitter {
   private aiHandler = new AIHandler();
 
   private bookmarks: Bookmark[] = [];
+  private categories: Categories = {};
 
   constructor() {
     super();
 
-    chrome?.bookmarks?.getTree((tree) => {
-      const items = this.readBookmarks(tree, []);
-      this.bookmarks = items;
-      this.saveBookmarks();
-    });
+    this.bindBookmarkListeners();
+    void this.initialize();
   }
 
   getBookmarks(): Bookmark[] {
     return this.bookmarks;
   }
 
-  saveBookmarks() {
-    this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
+  async saveBookmarks() {
+    await this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
   }
 
   async handleBookmarks() {
     this.setStatus(ManagerStatus.processing);
-    const categories = await this.aiHandler.handleBookmarks(this.bookmarks);
 
-    this.setCategories(categories);
-    this.setStatus(ManagerStatus.idle);
+    try {
+      const categories = await this.aiHandler.handleBookmarks(this.bookmarks);
+      await this.setCategories(categories);
+    } finally {
+      this.setStatus(ManagerStatus.idle);
+    }
   }
 
   getCategories() {
-    const raw = this.storage.get("categories");
-    return JSON.parse(raw === null ? "{}" : raw);
+    return this.categories;
   }
 
-  getProxyAPI() {
-    return new ProxyAPI();
+  private async initialize() {
+    await Promise.all([this.loadBookmarks(), this.loadCategories()]);
+  }
+
+  private bindBookmarkListeners() {
+    if (!chrome?.bookmarks) {
+      return;
+    }
+
+    const refreshBookmarks = () => {
+      void this.loadBookmarks();
+    };
+
+    chrome.bookmarks.onCreated.addListener(refreshBookmarks);
+    chrome.bookmarks.onRemoved.addListener(refreshBookmarks);
+    chrome.bookmarks.onChanged.addListener(refreshBookmarks);
+    chrome.bookmarks.onMoved.addListener(refreshBookmarks);
+    chrome.bookmarks.onChildrenReordered.addListener(refreshBookmarks);
+    chrome.bookmarks.onImportEnded.addListener(refreshBookmarks);
+  }
+
+  private async loadBookmarks() {
+    if (!chrome?.bookmarks) {
+      return [];
+    }
+
+    const tree = await new Promise<Bookmark[]>((resolve) => {
+      chrome.bookmarks.getTree((items) => {
+        resolve(items as Bookmark[]);
+      });
+    });
+
+    this.bookmarks = this.readBookmarks(tree, []);
+    await this.saveBookmarks();
+    this.emit("bookmarksUpdate", this.bookmarks);
+
+    return this.bookmarks;
+  }
+
+  private async loadCategories() {
+    const raw = await this.storage.get("categories");
+    this.categories = this.parseCategories(raw);
+    this.emit("categoriesUpdate", this.categories);
+    return this.categories;
   }
 
   readBookmarks(tree: Bookmark[], items: Bookmark[]) {
@@ -66,18 +107,28 @@ export class Manager extends EventEmitter {
     return items;
   }
 
-  setCategories(categories: Categories) {
-    this.storage.set("categories", JSON.stringify(categories));
+  private parseCategories(raw: string | null): Categories {
+    if (!raw) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(raw) as Categories;
+    } catch (error) {
+      console.error(error);
+      return {};
+    }
+  }
+
+  async setCategories(categories: Categories) {
+    this.categories = categories;
+    await this.storage.set("categories", JSON.stringify(categories));
     this.emit("categoriesUpdate", categories);
   }
 
   setStatus(status: ManagerStatus) {
     this.status = status;
     this.emit("statusUpdate", status);
-  }
-
-  eventNames(): (string | symbol)[] {
-    return ["statusUpdate"];
   }
 }
 

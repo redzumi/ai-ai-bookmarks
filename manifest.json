@@ -3,7 +3,7 @@
   "name": "AI AI Bookmarks",
   "version": "1.0.0",
   "action": { "default_popup": "index.html" },
-  "permissions": ["bookmarks"],
+  "permissions": ["bookmarks", "storage"],
   "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "logo-16.png",

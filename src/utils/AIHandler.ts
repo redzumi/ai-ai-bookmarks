@@ -1,25 +1,20 @@
-import uniq from "lodash.uniq";
 import { AskTemplate } from "../constants";
 import { Bookmark, Categories } from "../manager/Manager";
-import { ProxyAPI } from "./ProxyAPI";
-import PQueue from "p-queue";
+import { openAIClient } from "./OpenAIClient";
 
-const MAX_CONTEXT_TOKENS = 6000;
+const MAX_CONTEXT_CHARS = 6000;
 
 const toDocument = (bookmarks: Bookmark[]) =>
-  bookmarks.reduce((acc, curr) => acc + curr.title, "");
+  bookmarks.reduce((acc, curr) => acc + (curr.title ?? ""), "");
 
 export class AIHandler {
-
   private debug = false;
-
-  private proxyApi = new ProxyAPI();
-  private queue = new PQueue({ concurrency: 1 });
 
   async handleBookmarks(bookmarks: Bookmark[]) {
     const categories: Categories = {};
+    const bookmarksToProcess = bookmarks.filter((bookmark) => !bookmark.folder);
 
-    const chunks = this.getContextChunks(bookmarks);
+    const chunks = this.getContextChunks(bookmarksToProcess);
     this.log("Got chunks", chunks);
 
     const contexts = chunks.map((chunk) =>
@@ -28,37 +23,34 @@ export class AIHandler {
 
     this.log("Got contexts", contexts);
 
-    const responses = await Promise.all(
-      contexts.map(
-        async (context) =>
-          await this.queue.add(async () => {
-            this.log(Object.keys(categories));
-            const response = await this.proxyApi.sendRequest(
-              AskTemplate.replace("#context", context).replace(
-                "#categories",
-                JSON.stringify(Object.keys(categories))
-              )
-            );
+    const responses = [];
 
-            try {
-              const content: { [key: string]: number[] } = JSON.parse(
-                response?.choices[0]?.message?.content
-              );
+    for (const context of contexts) {
+      this.log(Object.keys(categories));
 
-              Object.keys(content).forEach((key) => {
-                categories[key] = uniq([
-                  ...(categories[key] || []),
-                  ...content[key],
-                ]);
-              });
+      const response = await openAIClient.sendRequest(
+        AskTemplate.replace("#context", context).replace(
+          "#categories",
+          JSON.stringify(Object.keys(categories))
+        )
+      );
 
-              return content;
-            } catch (error) {
-              console.error(error);
-            }
-          })
-      )
-    );
+      try {
+        const content: { [key: string]: number[] } = JSON.parse(
+          response?.choices?.[0]?.message?.content ?? "{}"
+        );
+
+        Object.keys(content).forEach((key) => {
+          categories[key] = Array.from(
+            new Set([...(categories[key] || []), ...(content[key] || [])])
+          );
+        });
+
+        responses.push(content);
+      } catch (error) {
+        console.error(error);
+      }
+    }
 
     this.log(responses);
     this.log(categories);
@@ -70,7 +62,7 @@ export class AIHandler {
     const chunks = bookmarks.reduce((acc: Bookmark[][], curr) => {
       const chunk = acc[acc.length - 1] || [];
 
-      if (toDocument(chunk).length + curr.title.length > MAX_CONTEXT_TOKENS) {
+      if (toDocument(chunk).length + (curr.title?.length ?? 0) > MAX_CONTEXT_CHARS) {
         acc.push([]);
         acc[acc.length - 1].push(curr);
 

@@ -7,8 +7,15 @@ export enum ManagerStatus {
   processing = "processing",
 }
 
-export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
+export type Bookmark = Omit<chrome.bookmarks.BookmarkTreeNode, "children"> & {
+  children?: Bookmark[];
+  folder?: boolean;
+};
 export type Categories = { [key: string]: number[] };
+export type CategoriesByFolder = Record<string, Categories>;
+
+const CATEGORIES_STORAGE_KEY = "categories-by-folder";
+const LEGACY_CATEGORIES_STORAGE_KEY = "categories";
 
 export class Manager extends SimpleEventEmitter {
   public status: ManagerStatus = ManagerStatus.idle;
@@ -16,8 +23,9 @@ export class Manager extends SimpleEventEmitter {
   private storage = new Storage();
   private aiHandler = new AIHandler();
 
+  private bookmarkTree: Bookmark[] = [];
   private bookmarks: Bookmark[] = [];
-  private categories: Categories = {};
+  private categoriesByFolder: CategoriesByFolder = {};
 
   constructor() {
     super();
@@ -30,23 +38,34 @@ export class Manager extends SimpleEventEmitter {
     return this.bookmarks;
   }
 
+  getBookmarkTree(): Bookmark[] {
+    return this.bookmarkTree;
+  }
+
+  getRootFolders(): Bookmark[] {
+    const root = this.bookmarkTree[0];
+    const children = root?.children ?? this.bookmarkTree;
+
+    return children.filter((item) => item.folder === true);
+  }
+
   async saveBookmarks() {
     await this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
   }
 
-  async handleBookmarks() {
+  async handleBookmarks(bookmarks: Bookmark[] = this.bookmarks, folderId = "all") {
     this.setStatus(ManagerStatus.processing);
 
     try {
-      const categories = await this.aiHandler.handleBookmarks(this.bookmarks);
-      await this.setCategories(categories);
+      const categories = await this.aiHandler.handleBookmarks(bookmarks);
+      await this.setCategories(folderId, categories);
     } finally {
       this.setStatus(ManagerStatus.idle);
     }
   }
 
-  getCategories() {
-    return this.categories;
+  getCategories(folderId = "all") {
+    return this.categoriesByFolder[folderId] ?? {};
   }
 
   private async initialize() {
@@ -77,22 +96,51 @@ export class Manager extends SimpleEventEmitter {
 
     const tree = await new Promise<Bookmark[]>((resolve) => {
       chrome.bookmarks.getTree((items) => {
-        resolve(items as Bookmark[]);
+        resolve(this.normalizeTree(items as Bookmark[]));
       });
     });
 
+    this.bookmarkTree = tree;
     this.bookmarks = this.readBookmarks(tree, []);
     await this.saveBookmarks();
+    this.emit("treeUpdate", this.bookmarkTree);
     this.emit("bookmarksUpdate", this.bookmarks);
 
     return this.bookmarks;
   }
 
   private async loadCategories() {
-    const raw = await this.storage.get("categories");
-    this.categories = this.parseCategories(raw);
-    this.emit("categoriesUpdate", this.categories);
-    return this.categories;
+    let raw = await this.storage.getJSON<CategoriesByFolder | Categories>(
+      CATEGORIES_STORAGE_KEY,
+      {}
+    );
+
+    if (Object.keys(raw).length === 0) {
+      const legacyRaw = await this.storage.getJSON<Categories>(
+        LEGACY_CATEGORIES_STORAGE_KEY,
+        {}
+      );
+
+      if (Object.keys(legacyRaw).length > 0) {
+        raw = legacyRaw as Categories;
+      }
+    }
+
+    this.categoriesByFolder = this.normalizeCategoriesByFolder(raw);
+    this.emit("categoriesUpdate", this.categoriesByFolder);
+    return this.categoriesByFolder;
+  }
+
+  private normalizeTree(tree: Bookmark[]): Bookmark[] {
+    return tree.map((item) => {
+      const children = item.children ? this.normalizeTree(item.children as Bookmark[]) : undefined;
+
+      return {
+        ...item,
+        folder: item.children !== undefined,
+        children,
+      };
+    });
   }
 
   readBookmarks(tree: Bookmark[], items: Bookmark[]) {
@@ -107,23 +155,31 @@ export class Manager extends SimpleEventEmitter {
     return items;
   }
 
-  private parseCategories(raw: string | null): Categories {
-    if (!raw) {
+  private normalizeCategoriesByFolder(
+    raw: CategoriesByFolder | Categories
+  ): CategoriesByFolder {
+    const values = Object.values(raw);
+
+    if (values.length === 0) {
       return {};
     }
 
-    try {
-      return JSON.parse(raw) as Categories;
-    } catch (error) {
-      console.error(error);
-      return {};
+    const looksLikeLegacyCategories = values.every((value) => Array.isArray(value));
+
+    if (looksLikeLegacyCategories) {
+      return { all: raw as Categories };
     }
+
+    return raw as CategoriesByFolder;
   }
 
-  async setCategories(categories: Categories) {
-    this.categories = categories;
-    await this.storage.set("categories", JSON.stringify(categories));
-    this.emit("categoriesUpdate", categories);
+  async setCategories(folderId: string, categories: Categories) {
+    this.categoriesByFolder = {
+      ...this.categoriesByFolder,
+      [folderId]: categories,
+    };
+    await this.storage.setJSON(CATEGORIES_STORAGE_KEY, this.categoriesByFolder);
+    this.emit("categoriesUpdate", this.categoriesByFolder);
   }
 
   setStatus(status: ManagerStatus) {

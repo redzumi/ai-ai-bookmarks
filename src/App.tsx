@@ -1,15 +1,11 @@
-import {
-  useEffect,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
-import { Bookmark, Categories, ManagerStatus, manager } from "./manager/Manager";
-import {
-  DEFAULT_OPENAI_SETTINGS,
-  type OpenAISettings,
-} from "./settings/openai";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { manager, ManagerStatus } from "./manager/Manager";
+import { DEFAULT_OPENAI_SETTINGS, type OpenAISettings } from "./settings/openai";
 import { openAIClient } from "./utils/OpenAIClient";
+import { useBookmarkWorkspace } from "./hooks/useBookmarkWorkspace";
+import { FolderSidebar } from "./components/FolderSidebar";
+import { BookmarkList } from "./components/BookmarkList";
+import { SettingsPanel } from "./components/SettingsPanel";
 import fullLogo from "./assets/full-logo.svg";
 
 import "./App.css";
@@ -19,34 +15,36 @@ type View = "bookmarks" | "settings";
 function App() {
   const [status, setStatus] = useState(manager.status);
   const [view, setView] = useState<View>("bookmarks");
-  const [currentName, setCurrentName] = useState<string | null>(null);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>(manager.getBookmarks());
-  const [categories, setCategories] = useState<Categories>(manager.getCategories());
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [settings, setSettings] = useState<OpenAISettings>(
     DEFAULT_OPENAI_SETTINGS
   );
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const {
+    activeNode,
+    activeFolderId,
+    activeSubfolderId,
+    categories,
+    childFolders,
+    currentBookmarks,
+    currentFolderId,
+    folderPathIds,
+    handleFolderChange,
+    rootFolders,
+    setActiveSubfolderId,
+  } = useBookmarkWorkspace();
+
   useEffect(() => {
     const handleStatusUpdate = (nextStatus: ManagerStatus) => {
       setStatus(nextStatus);
     };
-    const handleCategoriesUpdate = (nextCategories: Categories) => {
-      setCategories(nextCategories);
-    };
-    const handleBookmarksUpdate = (nextBookmarks: Bookmark[]) => {
-      setBookmarks(nextBookmarks);
-    };
 
     manager.on("statusUpdate", handleStatusUpdate);
-    manager.on("categoriesUpdate", handleCategoriesUpdate);
-    manager.on("bookmarksUpdate", handleBookmarksUpdate);
 
     return () => {
       manager.off("statusUpdate", handleStatusUpdate);
-      manager.off("categoriesUpdate", handleCategoriesUpdate);
-      manager.off("bookmarksUpdate", handleBookmarksUpdate);
     };
   }, []);
 
@@ -59,28 +57,36 @@ function App() {
     0
   );
 
-  const nonFolderBookmarksCount = bookmarks.filter((b) => b.folder === false).length;
-
-  const selectedBookmarks =
-    currentName && categories[currentName]
-      ? categories[currentName]
-          .map((bookmarkId) =>
-            bookmarks.find((bookmark) => bookmark.id === `${bookmarkId}`)
-          )
-          .filter((bookmark): bookmark is Bookmark => bookmark?.folder === false)
-      : [];
+  const nonFolderBookmarksCount = currentBookmarks.length;
 
   const runClassification = async () => {
     setErrorMessage(null);
 
     try {
-      await manager.handleBookmarks();
+      await manager.handleBookmarks(currentBookmarks, currentFolderId);
     } catch (error) {
       console.error(error);
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось обработать закладки"
       );
     }
+  };
+
+  const handleViewChange = (nextView: View) => {
+    setView(nextView);
+    if (nextView !== "bookmarks") {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleFolderSelect = (folderId: string) => {
+    handleFolderChange(folderId);
+    setIsSidebarOpen(false);
+  };
+
+  const handleSubfolderSelect = (folderId: string | null) => {
+    setActiveSubfolderId(folderId);
+    setIsSidebarOpen(false);
   };
 
   const updateSetting = (key: keyof OpenAISettings) => (
@@ -128,187 +134,103 @@ function App() {
       >
         <img src={fullLogo} className="logo" alt="AI AI Bookmarks logo" />
 
-        <div className="flex flex-wrap justify-center gap-3">
-          <button
-            className={view === "bookmarks" ? "btn btn-primary" : "btn btn-ghost"}
-            onClick={() => {
-              setView("bookmarks");
-              setCurrentName(null);
-            }}
-          >
-            Bookmarks
-          </button>
-          <button
-            className={view === "settings" ? "btn btn-primary" : "btn btn-ghost"}
-            onClick={() => setView("settings")}
-          >
-            Settings
-          </button>
+        <div className="app-topbar">
+          <div className="tabs tabs-boxed">
+            <button
+              type="button"
+              className={view === "bookmarks" ? "tab tab-active" : "tab"}
+              onClick={() => handleViewChange("bookmarks")}
+            >
+              Bookmarks
+            </button>
+            <button
+              type="button"
+              className={view === "settings" ? "tab tab-active" : "tab"}
+              onClick={() => handleViewChange("settings")}
+            >
+              Settings
+            </button>
+          </div>
+
+          <div className="app-topbar__actions">
+            {view === "bookmarks" && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm workspace-sidebar-toggle"
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                Folders
+              </button>
+            )}
+
+            {view === "bookmarks" && (
+              <button
+                type="button"
+                className="btn btn-neutral btn-sm"
+                onClick={runClassification}
+              >
+                Update with AI
+              </button>
+            )}
+          </div>
         </div>
 
         {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
         {view === "settings" ? (
-          <form className="settings-form" onSubmit={saveSettings}>
-            <div className="flex flex-col gap-2 text-left">
-              <h1 className="text-2xl font-bold">OpenAI Settings</h1>
-              <p className="text-sm opacity-70">
-                These values are stored locally inside the extension.
-              </p>
-            </div>
-
-            <label className="form-control">
-              <span className="label-text">OpenAI URL</span>
-              <input
-                type="url"
-                className="input input-bordered"
-                value={settings.baseUrl}
-                onChange={updateSetting("baseUrl")}
-                placeholder="https://api.openai.com/v1"
-              />
-            </label>
-
-            <label className="form-control">
-              <span className="label-text">Model</span>
-              <input
-                type="text"
-                className="input input-bordered"
-                value={settings.model}
-                onChange={updateSetting("model")}
-                placeholder="gpt-4o-mini"
-              />
-            </label>
-
-            <label className="form-control">
-              <span className="label-text">API token</span>
-              <input
-                type="password"
-                className="input input-bordered"
-                value={settings.token}
-                onChange={updateSetting("token")}
-                placeholder="sk-..."
-              />
-            </label>
-
-            <div className="flex flex-wrap justify-center gap-3">
-              <button
-                className="btn btn-outline"
-                type="button"
-                onClick={() => setSettings(DEFAULT_OPENAI_SETTINGS)}
-              >
-                Reset
-              </button>
-              <button className="btn btn-primary" type="submit" disabled={isSavingSettings}>
-                {isSavingSettings ? "Saving..." : "Save settings"}
-              </button>
-            </div>
-          </form>
+          <SettingsPanel
+            isSaving={isSavingSettings}
+            onReset={() => setSettings(DEFAULT_OPENAI_SETTINGS)}
+            onSave={saveSettings}
+            settings={settings}
+            onUpdate={updateSetting}
+          />
         ) : (
-          <>
-            {currentName ? (
-              <button
-                className="btn btn-outline btn-info"
-                onClick={() => setCurrentName(null)}
-              >
-                Back to bookmarks
-              </button>
-            ) : (
-              <button className="btn btn-neutral" onClick={runClassification}>
-                Update bookmarks categories
-              </button>
-            )}
+          <div className="workspace">
+            <FolderSidebar
+              activeFolderId={activeFolderId}
+              activeSubfolderId={activeSubfolderId}
+              activePathIds={folderPathIds}
+              childFolders={childFolders}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
+              onFolderSelect={handleFolderSelect}
+              onSubfolderSelect={handleSubfolderSelect}
+              rootFolders={rootFolders}
+            />
 
-            <div className="divider">
-              Bookmarks handled: {handledBookmarksCount}/{nonFolderBookmarksCount}
-            </div>
-
-            {currentName && (
-              <div>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <label>
-                          <input type="checkbox" className="checkbox" />
-                        </label>
-                      </th>
-                      <th>Name</th>
-                      <th>Added At</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedBookmarks.map((bookmark) => (
-                      <tr key={bookmark.id}>
-                        <th>
-                          <label>
-                            <input type="checkbox" className="checkbox" />
-                          </label>
-                        </th>
-                        <td>
-                          <div className="flex items-center space-x-3">
-                            <div className="avatar online placeholder">
-                              <div className="bg-neutral-focus text-neutral-content rounded-full w-16">
-                                <span className="text-xl">
-                                  {(bookmark.title ?? "").slice(0, 2).toUpperCase()}
-                                </span>
-                              </div>
-                            </div>
-                            <div>
-                              <a
-                                href={bookmark.url}
-                                className="link link-secondary font-bold"
-                              >
-                                {bookmark.title}
-                              </a>
-                              <div className="text-sm opacity-50">
-                                {bookmark.url && new URL(bookmark.url).hostname}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          {bookmark.dateAdded && (
-                            <div className="text-sm opacity-50">
-                              {new Date(bookmark.dateAdded).toISOString()}
-                            </div>
-                          )}
-                          <br />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div
-              className="grid grid-cols-4 gap-8 gap-x-8"
-              style={{ display: currentName ? "none" : "grid" }}
-            >
-              {Object.entries(categories).map(([key, value]) => (
-                <div key={key} className="indicator">
-                  <span className="indicator-item badge badge-primary">
-                    {value.length}
+            <section className="workspace-main">
+              <div className="stats-row">
+                <div className="stat-pill">
+                  <span className="stat-pill__label">Current</span>
+                  <span className="stat-pill__value">
+                    {activeNode?.title || "Bookmarks"}
                   </span>
-                  <div className="grid place-items-center cursor-pointer">
-                    <div
-                      className="card bg-base-100 shadow-xl"
-                      onClick={() => setCurrentName(key)}
-                    >
-                      <div className="card-body">
-                        <h2 className="card-title">{key}</h2>
-                        <p>With {value.length} bookmarks</p>
-                        <div className="card-actions justify-end">
-                          <button className="btn btn-primary">See</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              ))}
-            </div>
-          </>
+                <div className="stat-pill">
+                  <span className="stat-pill__label">Items</span>
+                  <span className="stat-pill__value">{nonFolderBookmarksCount}</span>
+                </div>
+                <div className="stat-pill">
+                  <span className="stat-pill__label">AI done</span>
+                  <span className="stat-pill__value">{handledBookmarksCount}</span>
+                </div>
+              </div>
+
+              <BookmarkList bookmarks={currentBookmarks} />
+
+              {Object.keys(categories).length > 0 && (
+                <div className="categories-strip">
+                  {Object.entries(categories).map(([key, value]) => (
+                    <div key={key} className="category-chip">
+                      <span>{key}</span>
+                      <b>{value.length}</b>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         )}
       </div>
     </div>

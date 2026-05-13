@@ -1,6 +1,6 @@
-import EventEmitter from "eventemitter3";
 import { Storage } from "../storage/Storage";
 import { AIHandler } from "../utils/AIHandler";
+import { SimpleEventEmitter } from "../utils/SimpleEventEmitter";
 
 export enum ManagerStatus {
   idle = "idle",
@@ -10,7 +10,7 @@ export enum ManagerStatus {
 export type Bookmark = chrome.bookmarks.BookmarkTreeNode & { folder?: boolean };
 export type Categories = { [key: string]: number[] };
 
-export class Manager extends EventEmitter {
+export class Manager extends SimpleEventEmitter {
   public status: ManagerStatus = ManagerStatus.idle;
 
   private storage = new Storage();

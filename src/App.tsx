@@ -1,4 +1,9 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { Bookmark, Categories, ManagerStatus, manager } from "./manager/Manager";
 import {
   DEFAULT_OPENAI_SETTINGS,
@@ -49,11 +54,6 @@ function App() {
     void openAIClient.getSettings().then(setSettings).catch(console.error);
   }, []);
 
-  const logoSrc =
-    typeof chrome !== "undefined" && chrome.runtime?.getURL
-      ? chrome.runtime.getURL(fullLogo)
-      : fullLogo;
-
   const handledBookmarksCount = Object.values(categories).reduce(
     (total, category) => total + category.length,
     0
@@ -69,6 +69,28 @@ function App() {
           )
           .filter((bookmark): bookmark is Bookmark => bookmark?.folder === false)
       : [];
+
+  const runClassification = async () => {
+    setErrorMessage(null);
+
+    try {
+      await manager.handleBookmarks();
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось обработать закладки"
+      );
+    }
+  };
+
+  const updateSetting = (key: keyof OpenAISettings) => (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    setSettings((current) => ({
+      ...current,
+      [key]: event.target.value,
+    }));
+  };
 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -92,28 +114,6 @@ function App() {
     }
   };
 
-  const updateSetting = (key: keyof OpenAISettings) => (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setSettings((current) => ({
-      ...current,
-      [key]: event.target.value,
-    }));
-  };
-
-  const runClassification = async () => {
-    setErrorMessage(null);
-
-    try {
-      await manager.handleBookmarks();
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось обработать закладки"
-      );
-    }
-  };
-
   return (
     <div className="app">
       {status === ManagerStatus.processing && (
@@ -126,7 +126,7 @@ function App() {
             : "app app-content"
         }
       >
-        <img src={logoSrc} className="logo" alt="AI AI Bookmarks logo" />
+        <img src={fullLogo} className="logo" alt="AI AI Bookmarks logo" />
 
         <div className="flex flex-wrap justify-center gap-3">
           <button
@@ -150,6 +150,13 @@ function App() {
 
         {view === "settings" ? (
           <form className="settings-form" onSubmit={saveSettings}>
+            <div className="flex flex-col gap-2 text-left">
+              <h1 className="text-2xl font-bold">OpenAI Settings</h1>
+              <p className="text-sm opacity-70">
+                These values are stored locally inside the extension.
+              </p>
+            </div>
+
             <label className="form-control">
               <span className="label-text">OpenAI URL</span>
               <input
@@ -182,10 +189,6 @@ function App() {
                 placeholder="sk-..."
               />
             </label>
-
-            <div className="text-sm opacity-70">
-              Settings are stored locally in the extension.
-            </div>
 
             <div className="flex flex-wrap justify-center gap-3">
               <button

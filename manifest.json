@@ -2,8 +2,13 @@
   "manifest_version": 3,
   "name": "AI AI Bookmarks",
   "version": "1.0.0",
-  "action": { "default_popup": "index.html" },
+  "action": {},
+  "options_page": "index.html",
   "permissions": ["bookmarks", "storage"],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
   "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "logo-16.png",

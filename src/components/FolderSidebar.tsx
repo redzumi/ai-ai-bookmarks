@@ -5,8 +5,8 @@ type Props = {
   activeFolderId: string | null;
   activeSubfolderId: string | null;
   activePathIds: string[];
-  childFolders: Bookmark[];
   isOpen: boolean;
+  onImportClick: () => void;
   onFolderSelect: (folderId: string) => void;
   onSubfolderSelect: (folderId: string | null) => void;
   onClose: () => void;
@@ -106,8 +106,8 @@ export function FolderSidebar({
   activeFolderId,
   activeSubfolderId,
   activePathIds,
-  childFolders,
   isOpen,
+  onImportClick,
   onFolderSelect,
   onSubfolderSelect,
   onClose,
@@ -130,6 +130,13 @@ export function FolderSidebar({
         <div className="folder-sidebar__header">
           <span>Folders</span>
           <div className="folder-sidebar__header-actions">
+            <button
+              className="folder-sidebar__import"
+              type="button"
+              onClick={onImportClick}
+            >
+              Import
+            </button>
             <button
               className="folder-sidebar__all"
               type="button"
@@ -159,37 +166,6 @@ export function FolderSidebar({
               onFolderSelect={onFolderSelect}
             />
           </div>
-
-          {childFolders.length > 0 && (
-            <div className="folder-sidebar__subsection">
-              <div className="folder-sidebar__subheader">Current folder</div>
-              <button
-                className={
-                  activeSubfolderId === null
-                    ? "sidebar-folder sidebar-folder--active"
-                    : "sidebar-folder"
-                }
-                type="button"
-                onClick={() => onSubfolderSelect(null)}
-              >
-                <span className="sidebar-folder__title">All in folder</span>
-                <span className="sidebar-folder__count">
-                  {childFolders.reduce(
-                    (total, folder) => total + countLeafBookmarks(folder),
-                    0
-                  )}
-                </span>
-              </button>
-              <FolderBranch
-                folders={childFolders}
-                depth={1}
-                activeFolderId={activeFolderId}
-                activeSubfolderId={activeSubfolderId}
-                activePathIds={activePathIds}
-                onFolderSelect={onSubfolderSelect}
-              />
-            </div>
-          )}
         </div>
       </aside>
     </>

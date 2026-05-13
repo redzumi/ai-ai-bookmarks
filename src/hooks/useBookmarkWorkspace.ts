@@ -3,7 +3,6 @@ import { manager, type Bookmark, type Categories } from "../manager/Manager";
 import {
   collectLeafBookmarks,
   findNodeById,
-  getChildFolders,
   getRootFolders,
 } from "../utils/bookmarkTree";
 
@@ -50,7 +49,6 @@ export const useBookmarkWorkspace = () => {
     walk(bookmarkTree, []);
     return path;
   }, [bookmarkTree, activeNode?.id]);
-  const childFolders = useMemo(() => getChildFolders(activeNode), [activeNode]);
   const currentBookmarks = useMemo(
     () => collectLeafBookmarks(activeNode),
     [activeNode]
@@ -111,7 +109,6 @@ export const useBookmarkWorkspace = () => {
     activeSubfolderId,
     bookmarkTree,
     categories,
-    childFolders,
     currentBookmarks,
     currentFolderId,
     folderPathIds,

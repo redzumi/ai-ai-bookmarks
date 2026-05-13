@@ -1,4 +1,10 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { manager, ManagerStatus } from "./manager/Manager";
 import { DEFAULT_OPENAI_SETTINGS, type OpenAISettings } from "./settings/openai";
 import { openAIClient } from "./utils/OpenAIClient";
@@ -16,6 +22,7 @@ function App() {
   const [status, setStatus] = useState(manager.status);
   const [view, setView] = useState<View>("bookmarks");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const [settings, setSettings] = useState<OpenAISettings>(
     DEFAULT_OPENAI_SETTINGS
   );
@@ -27,9 +34,7 @@ function App() {
     activeFolderId,
     activeSubfolderId,
     categories,
-    childFolders,
     currentBookmarks,
-    currentFolderId,
     folderPathIds,
     handleFolderChange,
     rootFolders,
@@ -59,19 +64,6 @@ function App() {
 
   const nonFolderBookmarksCount = currentBookmarks.length;
 
-  const runClassification = async () => {
-    setErrorMessage(null);
-
-    try {
-      await manager.handleBookmarks(currentBookmarks, currentFolderId);
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось обработать закладки"
-      );
-    }
-  };
-
   const handleViewChange = (nextView: View) => {
     setView(nextView);
     if (nextView !== "bookmarks") {
@@ -87,6 +79,60 @@ function App() {
   const handleSubfolderSelect = (folderId: string | null) => {
     setActiveSubfolderId(folderId);
     setIsSidebarOpen(false);
+  };
+
+  const exportCurrentFolder = async () => {
+    if (!activeNode) {
+      setErrorMessage("Нечего экспортировать");
+      return;
+    }
+
+    try {
+      const json = await manager.exportBookmarksAsJson(activeNode);
+      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const fileName = `${(activeNode.title || "bookmarks")
+        .toLowerCase()
+        .replace(/[^a-z0-9а-яё._-]+/gi, "-")
+        .replace(/^-+|-+$/g, "") || "bookmarks"}.json`;
+
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось экспортировать JSON"
+      );
+    }
+  };
+
+  const openImportPicker = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportFile = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const raw = await file.text();
+      await manager.importBookmarksFromJson(raw, activeNode?.id ?? undefined);
+      setErrorMessage(null);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось импортировать JSON"
+      );
+    }
   };
 
   const updateSetting = (key: keyof OpenAISettings) => (
@@ -154,23 +200,25 @@ function App() {
 
           <div className="app-topbar__actions">
             {view === "bookmarks" && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm workspace-sidebar-toggle"
-                onClick={() => setIsSidebarOpen(true)}
-              >
-                Folders
-              </button>
-            )}
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm workspace-sidebar-toggle"
+                  onClick={() => setIsSidebarOpen(true)}
+                >
+                  Folders
+                </button>
 
-            {view === "bookmarks" && (
-              <button
-                type="button"
-                className="btn btn-neutral btn-sm"
-                onClick={runClassification}
-              >
-                Update with AI
-              </button>
+                <span className="tooltip tooltip-bottom" data-tip="Скоро">
+                  <button
+                    type="button"
+                    className="btn btn-neutral btn-sm app-ai-button"
+                    disabled
+                  >
+                    Update with AI
+                  </button>
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -191,8 +239,8 @@ function App() {
               activeFolderId={activeFolderId}
               activeSubfolderId={activeSubfolderId}
               activePathIds={folderPathIds}
-              childFolders={childFolders}
               isOpen={isSidebarOpen}
+              onImportClick={openImportPicker}
               onClose={() => setIsSidebarOpen(false)}
               onFolderSelect={handleFolderSelect}
               onSubfolderSelect={handleSubfolderSelect}
@@ -200,6 +248,23 @@ function App() {
             />
 
             <section className="workspace-main">
+              <div className="workspace-actions">
+                <div className="workspace-actions__meta">
+                  <span className="workspace-actions__label">Current folder</span>
+                  <span className="workspace-actions__value">
+                    {activeNode?.title || "Bookmarks"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={exportCurrentFolder}
+                  disabled={!activeNode}
+                >
+                  Export JSON
+                </button>
+              </div>
+
               <div className="stats-row">
                 <div className="stat-pill">
                   <span className="stat-pill__label">Current</span>
@@ -232,6 +297,13 @@ function App() {
             </section>
           </div>
         )}
+        <input
+          ref={importInputRef}
+          accept="application/json,.json"
+          className="hidden"
+          type="file"
+          onChange={handleImportFile}
+        />
       </div>
     </div>
   );

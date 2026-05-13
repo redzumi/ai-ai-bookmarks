@@ -1,34 +1,46 @@
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100dvh;
   overflow-x: clip;
 }
 
 .app {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
+  height: 100dvh;
   overflow-x: clip;
+  min-height: 0;
 }
 
 .app-content {
   width: min(1120px, 100%);
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
   padding: 1.5rem;
   gap: 1rem;
   box-sizing: border-box;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   overflow-x: clip;
 }
 
 .app-blocked {
   position: relative;
+  display: flex;
+  flex-direction: column;
   pointer-events: none;
   width: 100%;
   margin: 0 auto;
   padding: 1.5rem;
   gap: 1rem;
   box-sizing: border-box;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   overflow-x: clip;
 }
 
@@ -86,20 +98,33 @@
   display: none;
 }
 
+.app-ai-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .workspace {
   width: 100%;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .workspace-main {
   display: grid;
   gap: 1rem;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
   overflow-x: clip;
+  scrollbar-width: thin;
+  padding-right: 0.15rem;
 }
 
 .folder-sidebar {
@@ -111,9 +136,9 @@
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: rgba(10, 16, 33, 0.62);
   box-shadow: 0 20px 50px rgba(2, 6, 23, 0.22);
-  position: sticky;
-  top: 1rem;
-  max-height: calc(100dvh - 2rem);
+  position: relative;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   min-width: 0;
   z-index: 12;
@@ -123,6 +148,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.folder-sidebar__import {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.5);
+  color: rgba(241, 245, 249, 0.92);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.76rem;
 }
 
 .folder-sidebar__header,
@@ -160,6 +194,7 @@
 .folder-sidebar__content {
   display: grid;
   gap: 0.75rem;
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding-right: 0.15rem;
@@ -229,6 +264,41 @@
   text-align: center;
   font-size: 0.74rem;
   font-weight: 700;
+}
+
+.workspace-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(10, 16, 33, 0.55);
+  box-sizing: border-box;
+}
+
+.workspace-actions__meta {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.workspace-actions__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.82);
+}
+
+.workspace-actions__value {
+  font-size: 0.96rem;
+  font-weight: 650;
+  color: rgba(241, 245, 249, 0.96);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stats-row {
@@ -389,7 +459,7 @@
     left: 0.75rem;
     bottom: 0.75rem;
     width: min(24rem, calc(100vw - 1.5rem));
-    max-height: none;
+    height: auto;
     transform: translateX(calc(-100% - 1.25rem));
     transition: transform 180ms ease;
   }

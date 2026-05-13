@@ -1,6 +1,11 @@
 import { Storage } from "../storage/Storage";
 import { AIHandler } from "../utils/AIHandler";
 import { SimpleEventEmitter } from "../utils/SimpleEventEmitter";
+import {
+  normalizeBookmarkImport,
+  type BookmarkJsonNode,
+  serializeBookmarkNode,
+} from "../utils/bookmarkJson";
 
 export enum ManagerStatus {
   idle = "idle",
@@ -51,6 +56,46 @@ export class Manager extends SimpleEventEmitter {
 
   async saveBookmarks() {
     await this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
+  }
+
+  async exportBookmarksAsJson(bookmark: Bookmark) {
+    const root = serializeBookmarkNode(bookmark);
+
+    if (!root) {
+      throw new Error("Не удалось экспортировать пустую папку");
+    }
+
+    return JSON.stringify(
+      {
+        exportedAt: new Date().toISOString(),
+        root,
+        version: 1,
+      },
+      null,
+      2
+    );
+  }
+
+  async importBookmarksFromJson(raw: string, parentId?: string | null) {
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error("Некорректный JSON файл");
+    }
+
+    const nodes = normalizeBookmarkImport(parsed);
+
+    if (nodes.length === 0) {
+      throw new Error("JSON не содержит папок или закладок для импорта");
+    }
+
+    for (const node of nodes) {
+      await this.createBookmarkNode(node, parentId ?? undefined);
+    }
+
+    await this.loadBookmarks();
   }
 
   async handleBookmarks(bookmarks: Bookmark[] = this.bookmarks, folderId = "all") {
@@ -141,6 +186,44 @@ export class Manager extends SimpleEventEmitter {
         children,
       };
     });
+  }
+
+  private async createBookmarkNode(
+    node: BookmarkJsonNode,
+    parentId?: string
+  ): Promise<chrome.bookmarks.BookmarkTreeNode> {
+    const isFolder = !node.url || Array.isArray(node.children);
+    const title = node.title?.trim() || (isFolder ? "Untitled folder" : "Untitled bookmark");
+
+    const createdNode = await new Promise<chrome.bookmarks.BookmarkTreeNode>(
+      (resolve, reject) => {
+        chrome.bookmarks.create(
+          {
+            parentId,
+            title,
+            ...(isFolder ? {} : { url: node.url }),
+          },
+          (created) => {
+            const lastError = chrome.runtime?.lastError;
+
+            if (lastError) {
+              reject(new Error(lastError.message));
+              return;
+            }
+
+            resolve(created);
+          }
+        );
+      }
+    );
+
+    if (isFolder && node.children?.length) {
+      for (const child of node.children) {
+        await this.createBookmarkNode(child, createdNode.id);
+      }
+    }
+
+    return createdNode;
   }
 
   readBookmarks(tree: Bookmark[], items: Bookmark[]) {

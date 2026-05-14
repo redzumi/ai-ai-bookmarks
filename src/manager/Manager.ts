@@ -89,7 +89,7 @@ export class Manager extends SimpleEventEmitter {
     const root = serializeBookmarkNode(bookmark);
 
     if (!root) {
-      throw new Error("Не удалось экспортировать пустую папку");
+      throw new Error("Cannot export an empty folder");
     }
 
     return JSON.stringify(
@@ -109,13 +109,13 @@ export class Manager extends SimpleEventEmitter {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      throw new Error("Некорректный JSON файл");
+      throw new Error("Invalid JSON file");
     }
 
     const nodes = normalizeBookmarkImport(parsed);
 
     if (nodes.length === 0) {
-      throw new Error("JSON не содержит папок или закладок для импорта");
+      throw new Error("JSON does not contain folders or bookmarks to import");
     }
 
     for (const node of nodes) {

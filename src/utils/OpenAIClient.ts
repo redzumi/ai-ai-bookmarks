@@ -51,7 +51,7 @@ export class OpenAIClient {
         messages: [
           {
             role: "system",
-            content: "Ты менеджер закладок в браузере",
+            content: "You are a browser bookmark manager",
           },
           { role: "user", content: prompt },
         ],

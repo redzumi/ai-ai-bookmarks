@@ -90,7 +90,7 @@ function App() {
 
   const exportCurrentFolder = async () => {
     if (!activeNode) {
-      setErrorMessage("Нечего экспортировать");
+      setErrorMessage("There is nothing to export");
       return;
     }
 
@@ -100,7 +100,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const fileName = `${(activeNode.title || "bookmarks")
         .toLowerCase()
-        .replace(/[^a-z0-9а-яё._-]+/gi, "-")
+        .replace(/[^\p{L}0-9._-]+/gu, "-")
         .replace(/^-+|-+$/g, "") || "bookmarks"}.json`;
 
       const anchor = document.createElement("a");
@@ -111,7 +111,7 @@ function App() {
     } catch (error) {
       console.error(error);
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось экспортировать JSON"
+        error instanceof Error ? error.message : "Failed to export JSON"
       );
     }
   };
@@ -137,7 +137,7 @@ function App() {
     } catch (error) {
       console.error(error);
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось импортировать JSON"
+        error instanceof Error ? error.message : "Failed to import JSON"
       );
     }
   };
@@ -163,7 +163,7 @@ function App() {
       await openAIClient.saveSettings(nextSettings);
     } catch (error) {
       console.error(error);
-      setErrorMessage("Не удалось сохранить настройки");
+      setErrorMessage("Failed to save settings");
     } finally {
       setIsSavingSettings(false);
     }
@@ -246,7 +246,7 @@ function App() {
                   Folders
                 </button>
 
-                <span className="tooltip tooltip-bottom" data-tip="Скоро">
+                <span className="tooltip tooltip-bottom" data-tip="Coming soon">
                   <button
                     type="button"
                     className="btn btn-neutral btn-sm app-ai-button"

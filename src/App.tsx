@@ -6,7 +6,11 @@ import {
   type FormEvent,
 } from "react";
 import { manager, ManagerStatus } from "./manager/Manager";
-import { DEFAULT_OPENAI_SETTINGS, type OpenAISettings } from "./settings/openai";
+import {
+  DEFAULT_OPENAI_SETTINGS,
+  sanitizeOpenAISettings,
+  type OpenAISettings,
+} from "./settings/openai";
 import { openAIClient } from "./utils/OpenAIClient";
 import { useBookmarkWorkspace } from "./hooks/useBookmarkWorkspace";
 import { FolderSidebar } from "./components/FolderSidebar";
@@ -150,11 +154,7 @@ function App() {
     setErrorMessage(null);
 
     try {
-      const nextSettings = {
-        baseUrl: settings.baseUrl.trim().replace(/\/$/, ""),
-        model: settings.model.trim(),
-        token: settings.token.trim(),
-      };
+      const nextSettings = sanitizeOpenAISettings(settings);
 
       setSettings(nextSettings);
       await openAIClient.saveSettings(nextSettings);

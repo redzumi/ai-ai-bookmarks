@@ -1,5 +1,8 @@
 import type { ChangeEvent, FormEvent } from "react";
-import type { OpenAISettings } from "../settings/openai";
+import {
+  OPENAI_ENDPOINT_OPTIONS,
+  type OpenAISettings,
+} from "../settings/openai";
 
 type Props = {
   isSaving: boolean;
@@ -27,16 +30,37 @@ export function SettingsPanel({
         </p>
       </div>
 
-      <label className="form-control">
-        <span className="label-text">OpenAI URL</span>
-        <input
-          type="url"
-          className="input input-bordered"
-          value={settings.baseUrl}
-          onChange={onUpdate("baseUrl")}
-          placeholder="https://api.openai.com/v1"
-        />
-      </label>
+      <fieldset className="form-control">
+        <legend className="label-text">LLM endpoint</legend>
+        <div className="endpoint-grid">
+          {OPENAI_ENDPOINT_OPTIONS.map((option) => {
+            const isSelected = settings.baseUrl === option.baseUrl;
+
+            return (
+              <label
+                key={option.baseUrl}
+                className={`endpoint-option ${
+                  isSelected ? "endpoint-option--active" : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="baseUrl"
+                  value={option.baseUrl}
+                  checked={isSelected}
+                  onChange={onUpdate("baseUrl")}
+                />
+                <span className="endpoint-option__content">
+                  <span className="endpoint-option__title">{option.label}</span>
+                  <span className="endpoint-option__description">
+                    {option.description}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <label className="form-control">
         <span className="label-text">Model</span>

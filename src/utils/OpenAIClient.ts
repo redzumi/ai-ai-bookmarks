@@ -1,6 +1,7 @@
 import { Storage } from "../storage/Storage";
 import {
   DEFAULT_OPENAI_SETTINGS,
+  sanitizeOpenAISettings,
   OPENAI_SETTINGS_KEY,
   type OpenAISettings,
 } from "../settings/openai";
@@ -17,15 +18,16 @@ export class OpenAIClient {
   private storage = new Storage();
 
   async getSettings(): Promise<OpenAISettings> {
-    return await this.storage.getJSON(OPENAI_SETTINGS_KEY, DEFAULT_OPENAI_SETTINGS);
+    const settings = await this.storage.getJSON(
+      OPENAI_SETTINGS_KEY,
+      DEFAULT_OPENAI_SETTINGS
+    );
+
+    return sanitizeOpenAISettings(settings);
   }
 
   async saveSettings(settings: OpenAISettings) {
-    await this.storage.setJSON(OPENAI_SETTINGS_KEY, {
-      baseUrl: settings.baseUrl.trim().replace(/\/$/, ""),
-      model: settings.model.trim(),
-      token: settings.token.trim(),
-    });
+    await this.storage.setJSON(OPENAI_SETTINGS_KEY, sanitizeOpenAISettings(settings));
   }
 
   async sendRequest(prompt: string): Promise<OpenAIChatCompletionsResponse> {

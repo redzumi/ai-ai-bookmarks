@@ -16,11 +16,17 @@ export type Bookmark = Omit<chrome.bookmarks.BookmarkTreeNode, "children"> & {
   children?: Bookmark[];
   folder?: boolean;
 };
+export type BookmarkIcon = {
+  kind: "emoji" | "url";
+  value: string;
+};
+export type BookmarkIconsById = Record<string, BookmarkIcon>;
 export type Categories = { [key: string]: number[] };
 export type CategoriesByFolder = Record<string, Categories>;
 
 const CATEGORIES_STORAGE_KEY = "categories-by-folder";
 const LEGACY_CATEGORIES_STORAGE_KEY = "categories";
+const BOOKMARK_ICONS_STORAGE_KEY = "bookmark-icons";
 
 export class Manager extends SimpleEventEmitter {
   public status: ManagerStatus = ManagerStatus.idle;
@@ -30,6 +36,7 @@ export class Manager extends SimpleEventEmitter {
 
   private bookmarkTree: Bookmark[] = [];
   private bookmarks: Bookmark[] = [];
+  private bookmarkIcons: BookmarkIconsById = {};
   private categoriesByFolder: CategoriesByFolder = {};
 
   constructor() {
@@ -41,6 +48,10 @@ export class Manager extends SimpleEventEmitter {
 
   getBookmarks(): Bookmark[] {
     return this.bookmarks;
+  }
+
+  getBookmarkIcons(): BookmarkIconsById {
+    return this.bookmarkIcons;
   }
 
   getBookmarkTree(): Bookmark[] {
@@ -56,6 +67,22 @@ export class Manager extends SimpleEventEmitter {
 
   async saveBookmarks() {
     await this.storage.set("bookmarks", JSON.stringify(this.bookmarks));
+  }
+
+  async setBookmarkIcon(bookmarkId: string, rawValue: string | null) {
+    const value = rawValue?.trim() ?? "";
+
+    const nextIcons = { ...this.bookmarkIcons };
+
+    if (!value) {
+      delete nextIcons[bookmarkId];
+    } else {
+      nextIcons[bookmarkId] = this.parseBookmarkIconValue(value);
+    }
+
+    this.bookmarkIcons = nextIcons;
+    await this.storage.setJSON(BOOKMARK_ICONS_STORAGE_KEY, this.bookmarkIcons);
+    this.emit("bookmarkIconsUpdate", this.bookmarkIcons);
   }
 
   async exportBookmarksAsJson(bookmark: Bookmark) {
@@ -114,7 +141,9 @@ export class Manager extends SimpleEventEmitter {
   }
 
   private async initialize() {
-    await Promise.all([this.loadBookmarks(), this.loadCategories()]);
+    await this.loadBookmarks();
+    await this.loadCategories();
+    await this.loadBookmarkIcons();
   }
 
   private bindBookmarkListeners() {
@@ -147,6 +176,7 @@ export class Manager extends SimpleEventEmitter {
 
     this.bookmarkTree = tree;
     this.bookmarks = this.readBookmarks(tree, []);
+    await this.pruneBookmarkIcons(new Set(this.bookmarks.map((bookmark) => bookmark.id)));
     await this.saveBookmarks();
     this.emit("treeUpdate", this.bookmarkTree);
     this.emit("bookmarksUpdate", this.bookmarks);
@@ -174,6 +204,16 @@ export class Manager extends SimpleEventEmitter {
     this.categoriesByFolder = this.normalizeCategoriesByFolder(raw);
     this.emit("categoriesUpdate", this.categoriesByFolder);
     return this.categoriesByFolder;
+  }
+
+  private async loadBookmarkIcons() {
+    this.bookmarkIcons = await this.storage.getJSON<BookmarkIconsById>(
+      BOOKMARK_ICONS_STORAGE_KEY,
+      {}
+    );
+    await this.pruneBookmarkIcons(new Set(this.bookmarks.map((bookmark) => bookmark.id)));
+    this.emit("bookmarkIconsUpdate", this.bookmarkIcons);
+    return this.bookmarkIcons;
   }
 
   private normalizeTree(tree: Bookmark[]): Bookmark[] {
@@ -236,6 +276,31 @@ export class Manager extends SimpleEventEmitter {
     });
 
     return items;
+  }
+
+  private async pruneBookmarkIcons(existingIds: Set<string>) {
+    const nextIcons: BookmarkIconsById = {};
+
+    for (const [bookmarkId, icon] of Object.entries(this.bookmarkIcons)) {
+      if (existingIds.has(bookmarkId)) {
+        nextIcons[bookmarkId] = icon;
+      }
+    }
+
+    if (Object.keys(nextIcons).length === Object.keys(this.bookmarkIcons).length) {
+      return;
+    }
+
+    this.bookmarkIcons = nextIcons;
+    await this.storage.setJSON(BOOKMARK_ICONS_STORAGE_KEY, this.bookmarkIcons);
+  }
+
+  private parseBookmarkIconValue(value: string): BookmarkIcon {
+    if (/^https?:\/\//i.test(value)) {
+      return { kind: "url", value };
+    }
+
+    return { kind: "emoji", value };
   }
 
   private normalizeCategoriesByFolder(

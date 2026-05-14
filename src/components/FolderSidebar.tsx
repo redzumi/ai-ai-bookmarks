@@ -15,6 +15,14 @@ type Props = {
 
 const folderLabel = (folder: Bookmark) => folder.title || "Untitled folder";
 
+const getFolderIcon = (isCurrent: boolean, isInPath: boolean) => {
+  if (isCurrent) {
+    return "📂";
+  }
+
+  return isInPath ? "📂" : "📁";
+};
+
 const FolderItem = ({
   folder,
   depth,
@@ -32,6 +40,7 @@ const FolderItem = ({
 }) => {
   const isCurrent = activeSubfolderId === folder.id || activeFolderId === folder.id;
   const isInPath = activePathIds.includes(folder.id);
+  const folderIcon = getFolderIcon(isCurrent, isInPath);
 
   return (
     <button
@@ -46,7 +55,12 @@ const FolderItem = ({
       type="button"
       onClick={() => onFolderSelect(folder.id)}
     >
-      <span className="sidebar-folder__title">{folderLabel(folder)}</span>
+      <span className="sidebar-folder__main">
+        <span className="sidebar-folder__icon" aria-hidden="true">
+          {folderIcon}
+        </span>
+        <span className="sidebar-folder__title">{folderLabel(folder)}</span>
+      </span>
       <span className="sidebar-folder__count">{countLeafBookmarks(folder)}</span>
     </button>
   );

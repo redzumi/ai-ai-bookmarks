@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { manager, type Bookmark, type Categories } from "../manager/Manager";
+import {
+  manager,
+  type Bookmark,
+  type BookmarkIconsById,
+  type Categories,
+} from "../manager/Manager";
 import {
   collectLeafBookmarks,
   findNodeById,
@@ -13,6 +18,9 @@ export const useBookmarkWorkspace = () => {
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [activeSubfolderId, setActiveSubfolderId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Categories>({});
+  const [bookmarkIcons, setBookmarkIcons] = useState<BookmarkIconsById>(
+    manager.getBookmarkIcons()
+  );
 
   const rootFolders = useMemo(() => getRootFolders(bookmarkTree), [bookmarkTree]);
   const activeRootFolder = useMemo(
@@ -80,6 +88,19 @@ export const useBookmarkWorkspace = () => {
   }, [currentFolderId]);
 
   useEffect(() => {
+    const handleBookmarkIconsUpdate = (nextIcons: BookmarkIconsById) => {
+      setBookmarkIcons(nextIcons);
+    };
+
+    manager.on("bookmarkIconsUpdate", handleBookmarkIconsUpdate);
+    setBookmarkIcons(manager.getBookmarkIcons());
+
+    return () => {
+      manager.off("bookmarkIconsUpdate", handleBookmarkIconsUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!activeFolderId && rootFolders[0]) {
       setActiveFolderId(rootFolders[0].id);
     }
@@ -108,12 +129,14 @@ export const useBookmarkWorkspace = () => {
     activeFolderId,
     activeSubfolderId,
     bookmarkTree,
+    bookmarkIcons,
     categories,
     currentBookmarks,
     currentFolderId,
     folderPathIds,
     handleFolderChange,
     rootFolders,
+    setBookmarkIcon: manager.setBookmarkIcon.bind(manager),
     setActiveSubfolderId,
   };
 };

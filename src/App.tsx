@@ -37,11 +37,13 @@ function App() {
     activeNode,
     activeFolderId,
     activeSubfolderId,
+    bookmarkIcons,
     categories,
     currentBookmarks,
     folderPathIds,
     handleFolderChange,
     rootFolders,
+    setBookmarkIcon,
     setActiveSubfolderId,
   } = useBookmarkWorkspace();
 
@@ -282,7 +284,11 @@ function App() {
                 </div>
               </div>
 
-              <BookmarkList bookmarks={currentBookmarks} />
+              <BookmarkList
+                bookmarks={currentBookmarks}
+                bookmarkIcons={bookmarkIcons}
+                onSetBookmarkIcon={setBookmarkIcon}
+              />
 
               {Object.keys(categories).length > 0 && (
                 <div className="categories-strip">

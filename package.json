@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "screenshots": "node scripts/capture-screenshots.mjs",
     "release": "release-it --",
     "preview": "vite preview"
   },
@@ -31,6 +32,7 @@
     "postcss": "^8.4.31",
     "postcss-nesting": "^12.0.1",
     "release-it": "^16.2.1",
+    "playwright": "^1.54.0",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",

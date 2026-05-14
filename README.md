@@ -71,6 +71,7 @@ npm run build
 - `npm run build` - type-check and build the extension
 - `npm run lint` - run ESLint
 - `npm run screenshots` - capture real UI screenshots from a local Chrome/Chromium session
+- `npm run preview:screenshots` - generate preview screenshots in `docs/assets/preview`
 - `npm run preview` - preview the production build
 
 ## Screenshots
@@ -82,6 +83,8 @@ npm run build
 <p align="center">
   <img alt="AI AI Bookmarks settings screenshot" src="docs/assets/ai-ai-bookmarks-settings.png" width="100%">
 </p>
+
+Preview images are generated separately with `npm run preview:screenshots` and written to `docs/assets/preview`.
 
 ## How to use
 

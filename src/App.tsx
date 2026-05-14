@@ -68,6 +68,7 @@ function App() {
     0
   );
 
+  const activeCategoryCount = Object.keys(categories).length;
   const nonFolderBookmarksCount = currentBookmarks.length;
 
   const handleViewChange = (nextView: View) => {
@@ -170,17 +171,51 @@ function App() {
 
   return (
     <div className="app">
+      <div className="app-shell-glow app-shell-glow--one" aria-hidden="true" />
+      <div className="app-shell-glow app-shell-glow--two" aria-hidden="true" />
       {status === ManagerStatus.processing && (
         <progress className="app-progress progress w-56"></progress>
       )}
       <div
         className={
           status === ManagerStatus.processing
-            ? "app app-blocked"
+            ? "app app-blocked app-content"
             : "app app-content"
         }
       >
-        <img src={fullLogo} className="logo" alt="AI AI Bookmarks logo" />
+        <header className="masthead">
+          <div className="masthead__brand">
+            <img src={fullLogo} className="logo" alt="AI AI Bookmarks logo" />
+            <div className="masthead__copy">
+              <span className="masthead__eyebrow">AI bookmark workspace</span>
+              <p>
+                Organize, search, and clean up your bookmarks without leaving the
+                extension.
+              </p>
+            </div>
+          </div>
+
+          <div className="masthead__stats">
+            <div className="mini-stat">
+              <span className="mini-stat__label">Current folder</span>
+              <span className="mini-stat__value">
+                {activeNode?.title || "Bookmarks"}
+              </span>
+            </div>
+            <div className="mini-stat">
+              <span className="mini-stat__label">Saved links</span>
+              <span className="mini-stat__value">{nonFolderBookmarksCount}</span>
+            </div>
+            <div className="mini-stat">
+              <span className="mini-stat__label">AI grouped</span>
+              <span className="mini-stat__value">{handledBookmarksCount}</span>
+            </div>
+            <div className="mini-stat">
+              <span className="mini-stat__label">Categories</span>
+              <span className="mini-stat__value">{activeCategoryCount}</span>
+            </div>
+          </div>
+        </header>
 
         <div className="app-topbar">
           <div className="tabs tabs-boxed">
@@ -228,13 +263,23 @@ function App() {
         {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
         {view === "settings" ? (
-          <SettingsPanel
-            isSaving={isSavingSettings}
-            onReset={() => setSettings(DEFAULT_OPENAI_SETTINGS)}
-            onSave={saveSettings}
-            settings={settings}
-            onUpdate={updateSetting}
-          />
+          <section className="settings-stage">
+            <div className="settings-stage__intro">
+              <span className="settings-stage__eyebrow">Configuration</span>
+              <h2>Connect an OpenAI-compatible provider.</h2>
+              <p>
+                Keep the token local, switch providers when needed, and use any
+                endpoint that speaks the chat completions API.
+              </p>
+            </div>
+            <SettingsPanel
+              isSaving={isSavingSettings}
+              onReset={() => setSettings(DEFAULT_OPENAI_SETTINGS)}
+              onSave={saveSettings}
+              settings={settings}
+              onUpdate={updateSetting}
+            />
+          </section>
         ) : (
           <div className="workspace">
             <FolderSidebar
